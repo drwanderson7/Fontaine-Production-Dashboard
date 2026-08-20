@@ -212,18 +212,21 @@
                 }
             });
 
+            // OTD = business days LATE (0 = on time, higher = later; early completions are
+            // flattened to 1 by the source data, they are NOT negative). So "most on-time"
+            // means the LOWEST average OTD, not the highest.
             let topLine = 1;
-            let bestOtdAvg = -Infinity;
+            let bestOtdAvg = Infinity;
             for (let i = 1; i <= 4; i++) {
                 if (lineOtdStats[i].count > 0) {
                 const avg = lineOtdStats[i].sum / lineOtdStats[i].count;
-                if (avg > bestOtdAvg) {
+                if (avg < bestOtdAvg) {
                     bestOtdAvg = avg;
                     topLine = i;
                 }
                 }
             }
-            if (bestOtdAvg === -Infinity) bestOtdAvg = 0; 
+            if (bestOtdAvg === Infinity) bestOtdAvg = 0; 
             const topLineVal = parseFloat(bestOtdAvg.toFixed(2));
 
             let highWeek = 2;
@@ -361,8 +364,10 @@
             // Pretty-print header name
             const fmtHeader = h => h.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
-            // OTD badge colour
-            const otdColor = (v) => v === null ? '' : v > 0 ? '#16a34a' : v < 0 ? '#dc2626' : '#64748b';
+            // OTD badge colour. Source OTD field is business days LATE (0 = on time,
+            // higher = later). Early completions are flattened to 1 by the source data,
+            // so this is not a signed early/late number — it only ever counts lateness.
+            const otdColor = (v) => v === null ? '' : v === 0 ? '#16a34a' : v > 0 ? '#dc2626' : '#64748b';
 
             return (
                 <div
@@ -412,7 +417,7 @@
                                                         <td key={k} className="py-2.5 px-4 whitespace-nowrap">
                                                             {val !== null && val !== undefined && val !== ''
                                                                 ? <span className="font-semibold" style={{ color: otdColor(parseFloat(val)) }}>
-                                                                    {parseFloat(val) > 0 ? '+' : ''}{val}d
+                                                                    {parseFloat(val) === 0 ? 'On time' : `${val}d late`}
                                                                   </span>
                                                                 : <span className="text-slate-300">—</span>
                                                             }
@@ -977,7 +982,8 @@
                             <div>
                             <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Most On-Time Line</p>
                             <h2 className="text-3xl font-bold text-slate-900 mt-1">Line {displayData.topLine.id}</h2>
-                            <p className="text-sm text-slate-500 mt-1">{displayData.topLine.val > 0 ? '+' : ''}{displayData.topLine.val} days avg OTD</p>
+                            <p className="text-sm text-slate-500 mt-1">{displayData.topLine.val} business days late (avg)</p>
+                            <p className="text-xs text-slate-400 mt-0.5">Lowest avg OTD among Lines 1–4</p>
                             </div>
                         </div>
 
@@ -993,6 +999,10 @@
                         </div>
                         </div>
 
+                        <p className="text-xs text-slate-400 mt-4 print-hidden">
+                            <span className="font-semibold">OTD note:</span> the OTD field measures business days late (0 = on time, higher = later). Early completions are recorded as a flat "1" by the source system regardless of how early, so OTD cannot show a true early margin — treat "1" as "on time or early," not literally "1 day."
+                        </p>
+
                         <div className="print-chart-wrapper flex flex-col flex-1 mt-8 print:mt-4">
                         <div className="flex justify-between items-start mb-4">
                             <div>
@@ -1004,7 +1014,7 @@
                             <div className="text-right flex flex-col sm:flex-row gap-2 items-end sm:items-center">
                             {displayData.totalChart.otdAvg !== null && (
                                 <div className="flex items-center gap-2 px-3 py-1 bg-sky-50 text-sky-700 rounded font-semibold text-sm border border-sky-100 print:bg-[#f0f9ff] print:text-[#0369a1] print:border-[#e0f2fe]">
-                                    Avg OTD: {displayData.totalChart.otdAvg > 0 ? '+' : ''}{displayData.totalChart.otdAvg} days
+                                    Avg OTD: {displayData.totalChart.otdAvg} days late
                                 </div>
                             )}
                             <div className="flex items-center gap-2 px-3 py-1 bg-red-50 text-red-700 rounded font-semibold text-sm border border-red-100 print:bg-[#fef2f2] print:text-[#b91c1c] print:border-[#fee2e2]">
@@ -1247,7 +1257,7 @@
                                 <div className="text-right flex flex-col sm:flex-row gap-2 items-end sm:items-center">
                                 {chart.otdAvg !== null && (
                                     <div className="flex items-center gap-2 px-3 py-1 bg-sky-50 text-sky-700 rounded font-semibold text-sm border border-sky-100 print:bg-[#f0f9ff] print:text-[#0369a1] print:border-[#e0f2fe]">
-                                    Avg OTD: {chart.otdAvg > 0 ? '+' : ''}{chart.otdAvg} days
+                                    Avg OTD: {chart.otdAvg} days late
                                     </div>
                                 )}
                                 <div className="flex items-center gap-2 px-3 py-1 bg-red-50 text-red-700 rounded font-semibold text-sm border border-red-100 print:bg-[#fef2f2] print:text-[#b91c1c] print:border-[#fee2e2]">
